@@ -1,28 +1,69 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <vue-dropzone ref="imageDropzone" :options="dropzoneOptions" @vdropzone-complete="afterComplete"></vue-dropzone>
+    <div v-if="images.length > 0">
+      <div v-for="image in images" :key="image.src">
+        <img :src="image.src" alt="">
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import firebase from 'firebase';
+import vue2Dropzone from 'vue2-dropzone';
+import "vue2-dropzone/dist/vue2Dropzone.min.css";
+let uuid = require('uuid');
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
-  }
+    vueDropzone: vue2Dropzone,
+  },
+  data(){
+    return {
+      images: [],
+      dropzoneOptions: {
+        url: "https://httpbin.org/post",
+        thumbnailWidth: 250,
+        thumbnailHeight: 250,
+        addRemoveLinks: false,
+        acceptedFiles: ".jpg, .jpeg, .png",
+      }
+    }
+  },
+  methods: {
+    async afterComplete(file){
+      try {
+        const imageName = uuid.v1();
+        var metadata = {
+          contentType : 'image/png'
+        }
+
+        const storageRef = firebase.storage().ref();
+        const imageRef = storageRef.child(`images/${imageName}.png`);
+
+        await imageRef.put(file, metadata);
+
+        const downloadUrl = await imageRef.getDownloadUrl();
+        this.iamges.push({src:downloadUrl});
+        this.refs.imgDropzone.removeFile(file);
+
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  },
 }
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
+  .img-div{
+    display: flex;
+    margin: 25px;
+  }
+  img{
+    max-width: 250px;
+    margin: 15px;
+  }
 </style>
